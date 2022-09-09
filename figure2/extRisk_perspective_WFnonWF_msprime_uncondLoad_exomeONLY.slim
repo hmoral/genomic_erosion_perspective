@@ -2,24 +2,13 @@ initialize() {
 	
 	if (exists("slimgui"))
 	{
-		
-		defineConstant("run", "del");
-		
+				
 		defineConstant("K", 1000);
 		defineConstant("outPath", "/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/");
 		defineConstant("outName", "test_trash_burnDel");
 		
 		defineConstant("neutralBurn", "/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/out_uncondLoad_msprimeBurn_exomeONLY_g1000_geneLength1000_totalLen1000999_Ne1000.0_U0.1_muNeutralExome1.5105740181268882e-08_seed1234_burn_fullOut.slim");
-		
-		
-		// path of genomic feature file
-		defineConstant("coord_file_in","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/chromosome23_coordinates_FicAlb1.5.txt");
-		// path of recombination map file
-		defineConstant("rho_file_in","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/chromosome23_recombinationRate_FicAlb1.5.txt");
-		
-		
-		//		defineConstant("hs_in", "/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/genetic_rescue/1_hs_prod1_hmode1_Ne20K_step40K.txt");
-		
+				
 		defineConstant("rho", 1e-04); //  recombination rate for exome
 		
 		defineConstant("seed", 1234); //  seed
@@ -118,7 +107,7 @@ initialize() {
 	
 	
 // defines prefix name for output
-		defineConstant("outPref",outPath+"/"+outName+"_runType"+run+"_K"+K+"_genLen"+geneLength+"_genNo"+g+"_chrNum"+chrNum+"_delMut"+del_mut+"_totalLen"+chromLen/1e6+"_U"+U+"_mu"+mu+"_rho"+rho+"_seed"+getSeed());
+		defineConstant("outPref",outPath+"/"+outName+"_K"+K+"_genLen"+geneLength+"_genNo"+g+"_chrNum"+chrNum+"_delMut"+del_mut+"_totalLen"+chromLen/1e6+"_U"+U+"_mu"+mu+"_rho"+rho+"_seed"+getSeed());
 	
 	
 	end=K*5+initGen;
