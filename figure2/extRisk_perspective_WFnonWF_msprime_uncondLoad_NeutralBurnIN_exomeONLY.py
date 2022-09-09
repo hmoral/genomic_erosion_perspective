@@ -48,7 +48,7 @@ parser.add_argument('--outPath',nargs='+',type=str)
 # seed
 parser.add_argument('--seed',nargs='+',type=int)
 # recombination rate
-parser.add_argument('--rho',nargs='+',type=int)
+parser.add_argument('--rho',nargs='+',type=float)
 
 
 args = parser.parse_args()
