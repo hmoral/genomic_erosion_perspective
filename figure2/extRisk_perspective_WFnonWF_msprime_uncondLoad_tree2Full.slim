@@ -1,0 +1,42 @@
+initialize() {
+	
+	if (exists("slimgui"))
+	{
+		
+		defineConstant("K", 1000);
+		defineConstant("outPath", "/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/");
+		
+		defineConstant("treeIN", "/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/out_uncondLoad_msprimeBurn_g1000_geneLength3400_muChrom1e-08_totalLen11201001_Ne1000_U0.1_seed12345_burn.tree");
+	
+	defineConstant("totalLen",11201001);
+		
+	}
+		
+	initializeSLiMModelType("nonWF");
+	
+	initializeTreeSeq();
+		
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, totalLen-1);
+	initializeRecombinationRate(0);
+	initializeMutationRate(0);
+
+}
+
+1 early() {
+	print("Reading tree: "+treeIN);
+	sim.readFromPopulationFile(treeIN);
+	sim.subpopulations.individuals.uniqueMutations.subpopID=1;
+	CMND="echo " +treeIN + " | sed s'/.tree/_fullOut.slim/'";
+	NAME=system(CMND);
+	print("Output: "+NAME);
+	sim.outputFull(NAME);
+	sim.simulationFinished();
+	print("Finished");
+}
