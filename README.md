@@ -3,6 +3,7 @@
 **Genomic erosion in the assessment of species extinction risk and recovery potential**. 
 Manuscript authors:
 Cock van Oosterhout, Samuel Speak, Thomas Birley, Chiara Bortoluzzi, Lawrence Percival-Alwyn, Lara H. Urban, Jim J. Groombridge, Gernot Segelbacher, and Hernán E. Morales. 
+
 Code authors:  
 Thomas Birley (T.Birley[at]uea[dot]ac[dot]uk) and Hernán E. Morales (hernanm[at]sund[dot]ku[dot]dk). 
 
