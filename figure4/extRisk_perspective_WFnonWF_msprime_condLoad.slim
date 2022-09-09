@@ -1,0 +1,435 @@
+// the code starts with an empty simulations. For very large Ne's the neutral burnin could be run with msprime and read into slim as done for Figure 2
+initialize() {
+	if (exists("h2")==0){
+		defineConstant("h2",0.5); // fixed narrow sense heritability (not used)
+	}
+	
+	if (exists("Ve")==0){
+		defineConstant("Ve",0.0); // environmental variance
+	}
+	
+	if (exists("propNeutral")==0){
+		defineConstant("propNeutral",0.5); // proportion of neutral mutations relative to QTL conditional mutations under stabilizing selection
+	}
+	
+	
+	if (exists("K")==0){
+		defineConstant("K",1000); // carrying capacity
+	}
+	
+	if (exists("outDIR")==0){
+		defineConstant("outDIR","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/ExtinctionRisk_perspective/slim/0_github/"); // output directory
+	}
+	
+	if (exists("outName")==0){
+		defineConstant("outName","test_trash_stabSel"); // output prefix
+	}
+	
+	if (exists("h_in")==0){
+		defineConstant("h_in",0.5); // h=0: gamma - h=1: unifrom - h=0.5: fixed at 0.5
+	}
+	
+	
+	if (exists("minK")==0){
+		defineConstant("minK",10); // carrying capacity at bottleneck
+	}
+	
+	if (exists("opt1")==0){
+		defineConstant("opt1",1.0); // initial optimum
+	}
+	
+	if (exists("opt2")==0){
+		defineConstant("opt2",2.5); // shift optimum
+	}
+	
+	if (exists("TbtlnDelta")==0){
+		defineConstant("TbtlnDelta",5); // generation from bottleneck to optimum shift
+	}
+	if (exists("Tbtln")==0){
+		defineConstant("Tbtln",5); // gens for time of bottleneck (butnin: K*Tbtln)
+	}
+	
+	if (exists("Lbtln")==0){
+		defineConstant("Lbtln",5); // generations duration of bottleneck
+	}
+	
+	if (exists("method")==0){
+		defineConstant("method",7); // method for fitness effect (use 7)
+	}
+	
+	if (exists("g")==0){
+		defineConstant("g",1000); // number of genes
+	}
+	
+	if (exists("chrNum")==0){
+		defineConstant("chrNum",10); // number of chromsomes
+	}
+	
+	if (exists("geneLength")==0){
+		defineConstant("geneLength",1000); // geneLength
+	}
+	
+	if (exists("mu")==0){
+		defineConstant("mu",1e-7); // mutation rate
+	}
+	
+	if (exists("rho")==0){
+		defineConstant("rho",1e-4); // recombination rate
+	}
+	
+	initializeSLiMModelType("nonWF");
+	scriptForQTLs = "runif(1,-0.5,0.5);";
+	initializeMutationType("m1", 0.5, "s", scriptForQTLs);
+	m1.convertToSubstitution=F;
+	initializeMutationType("m2", 0.5, "f", 0.0);
+	m2.convertToSubstitution=T;
+	initializeGenomicElementType("g1", c(m1,m2), c(1-propNeutral,propNeutral));
+	
+	gene_nums = rep(g/chrNum,chrNum);
+	i=1;
+	chromEnd=0;
+	mu_rates=c();
+	mu_ends=c();
+	for (i in 1:g){
+		initializeGenomicElement(g1, chromEnd+((i-1)*geneLength)+(i-1), chromEnd+(i*geneLength)+(i-2) );
+		mu_rates=c(mu_rates,mu);
+		mu_ends=c(mu_ends,chromEnd+(i*geneLength)+(i-2));
+	}
+	initializeMutationRate(mu_rates, mu_ends);
+	//	initializeMutationRate(mu);
+	
+	// recombination rates for exome
+	// Multiple chromosomes:
+	rates=c();
+	rates=c();
+	ends=c();
+	chromEnd=0;
+	for (i in 1:(size(gene_nums)-1)){
+		rates=c(rates, 0, rep(c(rho, 0), asInteger(gene_nums[i-1]-1)), 0.5);
+	}
+	rates=c(rates, 0, rep(c(rho, 0), asInteger(gene_nums[size(gene_nums)-1]-1)));
+	
+	for (i in 1:g){
+		ends=c(ends, chromEnd+(i*geneLength)+(i-2), chromEnd+(i*geneLength)+(i-1));
+	}
+	ends=ends[0:(size(ends)-2)];
+	
+	initializeRecombinationRate(rates, ends);
+	//	initializeRecombinationRate(rho);
+}
+
+1 early() {
+	sim.addSubpop("p1",K);
+	
+	sim.tag=K;
+	m1.tag=K;
+	
+	defineConstant("declineS",asInteger(K*Tbtln));
+	declineE=asInteger(declineS+Lbtln);
+	sim.rescheduleScriptBlock(s0,declineS,declineE-1);
+	sim.rescheduleScriptBlock(s1,declineE+200,declineE+200);
+	sim.rescheduleScriptBlock(s2,declineS-100,declineS-100);
+	defineConstant("Tdelta",declineE+TbtlnDelta);
+	defineConstant("declineDemo",asInteger(seq(K,minK,length=Lbtln)));
+	
+	defineConstant("OUTpref",outDIR+"/"+outName+"_rho"+rho+"_mu"+mu+"_opt1"+opt1+"_opt2"+opt2+"_K"+K+"_declineS"+declineS+"_declineE"+declineE+"_Tdelta"+Tdelta+"_minK"+minK+"_h"+h_in+"_seed"+getSeed());
+	
+	print("Method "+method);
+	print("K "+K);
+	print("output burnin");
+	print(s2);
+	print("declineS "+declineS);
+	print("declineE "+declineE);
+	print("declineDemo "+ paste(declineDemo));
+	print(s0);
+	print("Tdelta "+Tdelta);
+	print("declineE+200 "+ (declineE+200));
+	print(s1);
+	print("OUTpref "+OUTpref);
+	print("start clock "+clock());
+	
+	//count for bottleneck
+	p1.tag=-1;
+	
+	//init optimum
+	p1.setValue("opt",0.0);
+	//init Ve
+	p1.setValue("Ve",0.0);
+	
+	HEAD="gen"+"\t"+"opt"+"\t"+"N"+"\t"+"mPheno"+"\t"+"sdPheno"+"\t"+"varPheno"+"\t"+"mCount"+"\t"+"mFreq"+"\t"+"sdFreq"+"\t"+"varFreq"+"\t"+"mFit"+"\t"+"sdFit"+"\t"+"varFit"+"\t"+"minFit"+"\t"+"Va"+"\t"+"Vd"+"\t"+"targetK"+"\t"+"adaptK";
+	writeFile(OUTpref+"_fitness.txt", HEAD,append=F);
+	HEAD="gen"+ "\t" + "N" + "\t" + "mID" + "\t" + "mFreq" + "\t" + "z" + "\t" + "h" + "\t" + "HomRef" + "\t" + "HomAlt" + "\t" + "Het";
+	writeFile(OUTpref+"_muts.txt", HEAD,append=F);
+	HEAD= "gen" + "\t" + "pop" + "\t" + "N" + "\t" + "sample" + "\t" + "window1" + "\t" + "window2" +"\t" + "pi"+"\t" + "K";
+	writeFile(OUTpref+"_pi_windows.txt",HEAD,append=F);
+	HEAD="gen" + "\t" + "optimum" + "\t" + "phenotypes" + "\t" + "env" + "\t" + "fitness";
+	writeFile(OUTpref+"_individual_fitness.txt", HEAD,append=F);
+}
+
+
+// The simulations are nonWF, and thus use a carrying capacity rather than fixed Ne. This allows the population to go extinct due to accumulation of genetic load.
+// However, for a given carrying capacity genetic load can keep the population under its carrying capacity. This is fine for some applications, but here we want to simulate precisly a given Ne.
+// The fix below increases the carrying capacity when the population size fall below 10% its intended Ne and decreases it when it falls above by the same amount 
+
+1: late()
+{
+	N=p1.individualCount;
+	currSize=N/m1.tag;
+	if(currSize<0.9 & N<(m1.tag*2)){print("K up");deficit=1-currSize;sim.tag=sim.tag+asInteger(sim.tag*deficit);}
+	if(currSize>1.1){print("K down");deficit=1-currSize;sim.tag=sim.tag+asInteger(sim.tag*deficit);}
+	if(currSize<0.9 & N>(m1.tag*2)){print("K correction over 2*K");}
+}
+
+s2 100000 late()
+{
+	// to save the burn in stage and be used in other runs and run many replicates (not used here)
+	//	sim.outputFull(OUTpref+"burnIN_gen"+sim.generation+".slim_out");
+}
+
+
+// switch for environmental change
+2: late() {
+	curr_opt=p1.getValue("opt");
+	if(curr_opt<opt1)
+	{
+		print("--------  Raise optimum ------");
+		new_opt=curr_opt+0.01;
+		p1.setValue("opt",new_opt);
+	}
+	
+	if(sim.generation % 100 ==0)
+	{
+		print("--------  PROGRESS ------");
+		phenotypes=p1.individuals.getValue("pheno");
+		print("OUTPUT gen="+sim.generation +" opt="+curr_opt+" mean phenotypes ="+ mean(phenotypes)+" current Ve="+p1.getValue("Ve"));
+	}
+}
+
+
+//reproduction is random to approximate a panmictic randomly reproducing population (this makes a nonWF behave like a WF, together with the mortality of age > 0, see below)
+reproduction() {
+	// the population size can thus be changed by modfuing the sim.tag value
+	// this example produces a constant population size, however the demographic dynamics can be controled by changing sim.tag
+	for (i in seqLen(sim.tag))
+	{
+		firstParent = sim.subpopulations.sampleIndividuals(1);
+		secondParent = sim.subpopulations.sampleIndividuals(1);
+		sim.subpopulations.addCrossed(firstParent, secondParent);
+	}
+	self.active = 0;
+}
+
+// mortality of individuals age > 0 (this makes a nonWF behave like a WF, together with the random reproduction, see above)
+early()
+{
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+}
+
+// control the alternative ways to define dominance coefficient, for the paper we used a fixed h=0.5
+mutation(m1) {
+	if(h_in==0){
+		h=rgamma(1,0.05,1.2);
+		h[h>0.5]=0.5;
+	}
+	else if(h_in==1){
+		h=runif(1,-0.5,0.5);
+	}
+	else if(h_in==0.5){
+		h=0.5;
+	}
+	mut.setValue("dom", h);
+	return T;
+}
+
+fitness(m1) { return 1.0; }
+
+s0 late(){
+	p1.tag=p1.tag+1;
+	sim.tag=declineDemo[p1.tag];
+	print("!!!DECLINE!! - N="+sim.tag);
+	m1.tag=sim.tag;
+}
+
+early() {
+	
+	// QTL-based fitness
+	inds = sim.subpopulations.individuals; // get all individuals
+	phenotypes = inds.sumOfMutationsOfType(m1); // get their phenotypic values by summing all their z values
+	optimum = p1.getValue("opt"); // define optimum (if you want to use a high intial optimum, the population should allow to build enough variation first and raise the optimum slowly, or start with a neutral simulation ans switch X% of sites to be QTLs)
+	if(sim.generation > Tdelta){optimum = opt2;}
+	if(optimum>=opt1){p1.setValue("Ve",Ve);}
+	
+	inds = sim.subpopulations.individuals; // get all individuals
+	phenotypes = inds.sumOfMutationsOfType(m1); // get their phenotypic values by summing all their z values
+	wLoop=c();
+	S=1.0;
+	pheno=c();
+	for(indv in inds)
+	{
+		muts0_m1 = indv.genomes[0].mutationsOfType(m1);
+		muts1_m1 = indv.genomes[1].mutationsOfType(m1);
+		if(size(muts0_m1)+size(muts1_m1)>0)
+		{
+			HOMO_m1=setIntersection(muts0_m1,muts1_m1);
+			HETERO_m1=setSymmetricDifference(muts0_m1,muts1_m1);
+			if(size(HOMO_m1)>0){
+				z_homo=sum(HOMO_m1.selectionCoeff);
+			} else {z_homo=0;}
+			if(size(HETERO_m1)>0){
+				z_hetero=sum(HETERO_m1.selectionCoeff * HETERO_m1.getValue("dom"));
+			} else {z_hetero=0;}
+			//			print("z_homo= "+mean(z_homo));
+			//			print("z_hetero= "+mean(z_hetero));
+			pheno_indv=z_homo+z_hetero;
+			z_indv=((pheno_indv)-optimum)^2;
+			z_indv=1-S*(z_indv);
+		} else {pheno_indv=0.0;z_indv=1.0;}
+		pheno=c(pheno,pheno_indv);
+		wLoop=c(wLoop,z_indv);
+		indv.setValue("fit",z_indv);
+		indv.setValue("pheno",pheno_indv);
+	}
+	env = rnorm(size(inds), 0.0, sqrt(Ve));
+	//		print("len(env)"+length(env)+" - Ve= "+var(env));	
+	phenotypes = pheno + env;
+	wLoop=((phenotypes)-optimum)^2;
+	wLoop=1-S*(wLoop);
+	pheno=phenotypes;
+	if(size(wLoop)>0){wLoop[wLoop<0.0]=0.0;}else{wLoop=1;}
+	inds.tagF = env;   // just for output below
+	//		print(optimum);
+	inds.fitnessScaling = wLoop; // fitness effect of the phenotypic fitness
+	
+	// density-dependence to regulate Ne according to carrying capacity
+	p1.fitnessScaling = sim.tag / p1.individualCount;
+}
+
+1: late()
+{
+	
+	if (p1.individualCount < 2)
+	{
+		// stop at extinction
+		catn("Extinction in generation " + sim.generation + ".");
+		CMD="gzip "+OUTpref+"*";
+		system(command=CMD);
+		sim.simulationFinished();
+	} else {
+		
+		if( (sim.generation < (declineS-100) & sim.generation % 100 ==0) | (sim.generation >= (declineS-100))  )
+		{
+			print("OUTPUT gen="+sim.generation);
+			phenotypes = p1.individuals.tagF;
+			M3=sim.mutationsOfType(m1);
+			M3_freq=sim.mutationFrequencies(p1,M3);
+			optimum = p1.getValue("opt"); // define optimum in this example is zero
+			if(sim.generation > Tdelta){optimum = opt2;}
+			if(p1.individualCount>1){
+				fitness=p1.individuals.getValue("fit");
+				OUT=sim.generation + "\t" + optimum + "\t" + p1.individualCount + "\t" + mean(phenotypes) + "\t" + sd(phenotypes)+ "\t" + var(phenotypes) + "\t" + sim.countOfMutationsOfType(m1) + "\t" + mean(M3_freq) + "\t" + sd(M3_freq)+ "\t" + var(M3_freq) + "\t" + mean(fitness) + "\t" + sd(fitness)+ "\t" + var(fitness) + "\t" + min(fitness);
+				
+				phenotypes=p1.individuals.getValue("pheno");
+
+				M1=sim.mutationsOfType(m1);
+				p=sim.mutationFrequencies(p1,M1);
+				q=1-p;
+				z=M1.selectionCoeff;
+				h=M1.getValue("dom");
+				d=sd(z);
+				Va = sum((2*p*q)*(z^2));
+				Vd=0; // Vd = sum(2*p*q*d)^2; with h=0.5 Vd is fixed
+				OUT=sim.generation + "\t" + optimum + "\t" + p1.individualCount + "\t" + mean(phenotypes) + "\t" + sd(phenotypes)+ "\t" + var(phenotypes) + "\t" + sim.countOfMutationsOfType(m1) + "\t" + mean(M3_freq) + "\t" + sd(M3_freq)+ "\t" + var(M3_freq) + "\t" + mean(fitness) + "\t" + sd(fitness)+ "\t" + var(fitness) + "\t" + min(fitness) + "\t" + Va+ "\t" + Vd + "\t" + m1.tag+ "\t" + sim.tag;
+				
+				HomRef=sapply(M1, "sum(p1.individuals.genome1.containsMutations(applyValue)==F&p1.individuals.genome2.containsMutations(applyValue)==F)/p1.individuals.size();");
+				HomAlt=sapply(M1, "sum(p1.individuals.genome1.containsMutations(applyValue)==T&p1.individuals.genome2.containsMutations(applyValue)==T)/p1.individuals.size();");
+				Het1=sapply(M1, "sum(p1.individuals.genome1.containsMutations(applyValue)==F&p1.individuals.genome2.containsMutations(applyValue)==T)/p1.individuals.size();");
+				Het2=sapply(M1, "sum(p1.individuals.genome1.containsMutations(applyValue)==T&p1.individuals.genome2.containsMutations(applyValue)==F)/p1.individuals.size();");
+				Het=Het1+Het2;
+				OUT_muts=sim.generation+ "\t" + p1.individualCount + "\t" + M1.id + "\t" + p + "\t" + z + "\t" + h + "\t" + HomRef + "\t" + HomAlt + "\t" + Het;
+			
+			}
+			
+			writeFile(OUTpref+"_fitness.txt", OUT,append=T);
+			writeFile(OUTpref+"_muts.txt", OUT_muts,append=T);
+			
+		// this is an example to estimate pi in sliding windows, there is no use of the sliding-window implementation here because the exome does not vary. But this is usefull when using a chromosome woth variables levels of recombination or gene targets (i.e., a variable genomic landscape)
+// here we calculate pi in a single window of the entire genomic region
+			out=subpopHeterozygosityWindow(sim.subpopulations,0,sim.chromosome.lastPosition-1,m2,200);
+			out=out+"\t"+sim.tag;
+			writeFile(OUTpref+"_pi_windows.txt",asString(out),append=T);
+		}
+		
+		phenotypes=p1.individuals.getValue("pheno");
+		M3=sim.mutationsOfType(m1);
+		M3_freq=sim.mutationFrequencies(p1,M3);
+		cat(sim.generation + ": " + p1.individualCount + " individuals");
+		cat(", phenotype mean " + mean(phenotypes));
+		if (size(phenotypes) > 1)
+			cat(" (sd " + sd(phenotypes) + ")");
+		cat(", m count " + asInteger(sim.countOfMutationsOfType(m1)));
+		cat(", m_or " + asInteger(sum(Tdelta<sim.mutationsOfType(m1).originGeneration))+ " -- " +"\t"+asInteger(sum(M3_freq<0.1))
+			+"\t"+asInteger(sum(M3_freq>=0.1&M3_freq<0.5))
+			+"\t"+asInteger(sum(M3_freq>=0.5&M3_freq<0.8))
+			+"\t"+asInteger(sum(M3_freq>=0.8&M3_freq<1.0))
+			+"\t"+asInteger(sum(M3_freq==1.0)));
+		catn();
+		print("  memory usage: "+usage()/1000+"Gb");
+		
+		if(sim.generation >= (declineS-10) & sim.generation <= (declineS+150))
+		{
+			print("Large ouput gen="+sim.generation);
+			phenotypes=p1.individuals.getValue("pheno");
+			env=p1.individuals.tagF;
+			fitness=p1.individuals.getValue("fit");
+			OUT=sim.generation + "\t" + optimum + "\t" + phenotypes + "\t" + env + "\t" + fitness;
+			writeFile(OUTpref+"_individual_fitness.txt", OUT,append=T);
+		}
+	
+	}
+
+
+
+}
+
+s1 late() {
+	
+	CMD="gzip "+OUTpref+"*";
+	system(command=CMD);
+	catn("Finished at generation " + sim.generation + ".");
+	sim.simulationFinished();
+}
+
+////////////////////////////
+// Heterozygosity window
+function (f$)genomicHeterozygosityWindow(o<Genome>$ genome1, o<Genome>$ genome2 ,integer$ window1 , integer$ window2 , object$ mutType) ///Calc heterozig between 2 genomes only for a certain window
+{
+	muts1 = genome1.mutationsOfType(mutType);
+	muts1 = muts1[muts1.position>=window1 & muts1.position<=window2];
+	
+	muts2 = genome2.mutationsOfType(mutType);
+	muts2 = muts2[muts2.position>=window1 & muts2.position<=window2];
+	
+	unshared = setSymmetricDifference(muts1, muts2);
+	pi = size(unshared) / (window2-window1);
+	return pi;
+}
+
+function (s)subpopHeterozygosityWindow( o<Subpopulation>$ subpop, integer$ window1, integer$ window2, object$ mutType , [i$ sampleSize=100] ) ///Calc heteroz for a sample of inds from a pop BUT for a specific window
+{
+	if (sampleSize > subpop.individualCount)
+		sampledIndividuals = subpop.individuals;
+	else
+		sampledIndividuals = sample(subpop.individuals, sampleSize, replace=F);
+	
+	pi_total = 0;
+	for (individual in sampledIndividuals)
+	{
+		genomes = individual.genomes;
+		individual_pi = genomicHeterozygosityWindow(genomes[0], genomes[1], window1 , window2, mutType);
+		pi_total = pi_total + individual_pi;
+	}
+	
+	out= sim.generation + "\t" + subpop.id + "\t" + subpop.individualCount + "\t" + sampledIndividuals.size() + "\t" + window1 + "\t" + window2 +"\t" + (pi_total / sampledIndividuals.size());
+	return(out);
+}
