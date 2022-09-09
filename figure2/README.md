@@ -1,4 +1,4 @@
-### The code is run in four steps:
+### The code is run in three steps:
 1. extRisk_perspective_WFnonWF_msprime_uncondLoad_NeutralBurnIN_exomeONLY.py: used for generating a burnin stage; produces a mutated treeseq file using msprime (see https://tskit.dev/msprime/docs/stable/intro.html)
 2. extRisk_perspective_WFnonWF_msprime_uncondLoad_tree2Full.slim: transform the tree from step 1 into slim output, the tree can be read directly into step 3 but the simulation is slower because it needs treeseq recording
 3. extRisk_perspective_WFnonWF_msprime_uncondLoad_exomeONLY.slim: takes mutated output from step 2 and runs the simulation of unconditional genetic load 
