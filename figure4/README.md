@@ -1,4 +1,4 @@
-The code is run in one step:
+### The code is run in one step:
 1. extRisk_perspective_WFnonWF_msprime_condLoad.slim
 
 ### minimal example (unrealistic parameters, e.g. small population and few genes to run faster) 
