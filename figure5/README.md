@@ -1,17 +1,31 @@
-The code is run in four steps:
-1. PP_nonWF_burnin_v2_20_07_21.slim: used for generating a burnin stage; produces a treeseq recording without mutations later recapitated and mutated using pyslim (see https://pyslim.readthedocs.io/en/latest/tutorial.html)
-2. PP_nonWF_burnin_tree2FullOutput.py: The resulting tree file is recapitated and mutated to incoporate neutral mutations
-3. PP_nonWF_step2_v2_20_07_21.slim: takes mutated output from step #2 and runs a shorter burnin for deleterious mutations, it outputs genetic load metrics and slim output files (needed for step 4) at regular basis to track when equilibrium of masked load is reached. 
-4. PP_nonWF_step3_v2_20_07_21.slim: Once equilibrium has been reached it uses the file "PP_nonWF_final_demoHistory_goodOne_YEAR2200.txt" to simulate the PP demographic trajectory and conservation managment scenarios (see paper)
 
-### minimal example (unrealistic parameters, e.g. small population and few genes to run faster) 
-```slim -d seed=1234 -d Nin=1000 -d g=100 -d geneLength=1000 -d "outPref_in='test_run_burnIn'" -d "chr_genes_in='CDS_chr_prop_len3400_genes13840_totalLen_47Mb.txt'" PP_nonWF_burnin_v2_20_07_21.slim```
+## Instructions for running simulations for hard and soft selection
+Both the hard and soft selection simulations are run in two steps using SLiM (URL for SLiM manual - http://benhaller.com/slim/SLiM_Manual.pdf)
 
-```python PP_nonWF_burnin_tree2FullOutput.py --tree test_run_burnIn_genLen1000_genNo100_K1000_seed1234_treeSeq_gen5000.tree --genTime 3.3 --seed 1234 --gen 10 --mID m1000 --U 1 --neutP 0.3 --recRate test_run_burnIn_genLen1000_genNo100_K1000_seed1234_recRates.txt --recPos test_run_burnIn_genLen1000_genNo100_K1000_seed1234_recPos.txt --NeRatio 8 --Outprefix test_run_burnIn```
+Both simulations require the the generation of 'burn in' populations that at generated using "Burn_in_populations_sript.slim"
+It requires deleterious mutations sampled from previously simulated stable populations which are read in using "hs_in.txt", and data used to create the exomes from the populations are read in from "chr_genes_in.txt".
+The paths to each of these files needs completed within the SLiM scripts.
+Paths that to the desired destination for the output of data also need to be completed.
+Each simulation ran using "Burn_in_populations_sript.slim" produces a population file and a file of selected mutations.
+Both of these files needs to be read into the hard and soft selection simulations in parts 2a and 2b respectively, in addition to the "chr_genes_in.txt" file.
 
-```slim -d U=1 -d "slim_in='test_run_burnIn_pyslimParams_gensRun5000_genTime3.3_genOut10_mIDm1000_Glen100099.0_U1.0_rho0.001_neutP0.3_pyslimResults_pi2.70e-03_Nc1017_Ne135_mutated_fullOutput.txt'" -d Nin=1000 -d g=100 -d geneLength=1000 -d "outPref_in='test_run_step2'" -d "chr_genes_in='CDS_chr_prop_len3400_genes13840_totalLen_47Mb.txt'" PP_nonWF_step2_v2_20_07_21.slim```
+- 2a The simulations that produce data for genetic load under hard selection are run using "Hard_selection_script.slim"
+- 2b The simulations that produce data for genetic load under soft selection are run using "Soft_selection_script.slim"
+These scripts also require the completion of the paths used to read files.
+Paths that to the desired destination for the output of data also need to be completed.
 
-```slim -d "demo_file_path='PP_nonWF_final_demoHistory_goodOne_YEAR2200.txt'" -d "supMode='N'" -d mng_captive=2 -d U=1 -d "slim_in='test_run_step2_genLen1000_genNo100_totalLen0.100098_Nfinal1000_rho0.001_mu5e-06_U1_seed1789525100269_afterTreeSeqBurn_gen2000.slim'" -d Nin=1000 -d g=100 -d geneLength=1000 -d "outPref_in='test_run_step3'" -d "chr_genes_in='CDS_chr_prop_len3400_genes13840_totalLen_47Mb.txt'" PP_nonWF_step3_v2_20_07_21.slim```
+## Command line example
 
-Dendencies:
-SLiM3, python and python libraries: msprime, pyslim, tskit, numpy, argparse, allel and re
+```slim -s 135 -d K=5000 -d Ls=5 -d hmode=2 -d GenLoadth=1.7 -d geneLength=1000 -d g=1000 -d rho=1e-05 -d mu=1e-05 Hard_selection_script.slim```
+
+Key:
+
+- s           Seed number
+- K            The mean of the normal distribution from which the carrying capacity will be selected each generation
+- Ls           The mean of the poisson distribution from which the number of offspring from each mating couple will be selected
+- hmode=2      Ensures that mutations are selected from the relevant files rather than generated independently
+- GenLoadth    The threshold that the each individual needs to score over to survive hard selection (hard selection simulations only)
+- geneLength   The number of base pairs of each gene
+- g            The number of genes
+- rho          Recombination rate
+- mu           Mutation rate
